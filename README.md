@@ -15,7 +15,7 @@
 ## 🧩 系統架構
 > 拓樸：數據機(Port 51820/51821 轉發) → 家用 Wi‑Fi 分享器(同埠 Port Forward) → 靜態路由 10.0.0.0/24 → Ubuntu (WireGuard wg0/wg1 + AdGuard Home)
 
-### Mermaid 圖（可複製到 `docs/architecture.mmd`，或在 GitHub 上直接顯示）
+### Mermaid 圖
 ```mermaid
 flowchart LR
   subgraph Internet[🌐 Internet]
