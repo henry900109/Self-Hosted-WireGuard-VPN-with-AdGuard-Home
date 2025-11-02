@@ -13,16 +13,74 @@
 
 ---
 ## 🧩 系統架構
+> 拓樸：數據機(Port 51820/51821 轉發) → 家用 Wi‑Fi 分享器(同埠 Port Forward) → 靜態路由 10.0.0.0/24 → Ubuntu (WireGuard wg0/wg1 + AdGuard Home)
+
+### Mermaid 圖（可複製到 `docs/architecture.mmd`，或在 GitHub 上直接顯示）
+```mermaid
+flowchart LR
+  subgraph Internet[🌐 Internet]
+    C1[📱 Client A
+WireGuard App]
+    C2[💻 Client B
+WireGuard App]
+  end
+
+  C1 -- UDP 51820/51821 --> M
+  C2 -- UDP 51820/51821 --> M
+
+  subgraph Modem[📶 數據機]
+    M{{NAT / Port Forward}} 
+  end
+
+  subgraph Router[🏠 家用 Wi‑Fi 分享器]
+    R{{Port Forward
+51820, 51821}} 
+    RT[Static Route
+10.0.0.0/24 → Ubuntu_LAN_IP]
+  end
+
+  subgraph Ubuntu[🖥️ Ubuntu 伺服器]
+    WG0[(wg0
+10.0.0.2/24
+Full‑tunnel)]
+    WG1[(wg1
+10.1.0.2/24
+Selective)]
+    ADG[(AdGuard Home
+DNS:53 / Setup:3000)]
+  end
+
+  M --> R
+  R -->|LAN| Ubuntu
+  WG0 --> ADG
+  WG1 --> ADG
+
+  ADG -->|Outbound| NET[🌍 Internet]
 ```
-Client(手機/電腦)
-        │
-   [WireGuard Tunnel]
-        │
-Ubuntu Server ─── AdGuard Home ─── Internet
-    │
-  wg0(全流量)
-  wg1(限定網站)
+
+### ASCII 備用圖
 ```
+[Client A/B]
+   |  UDP 51820/51821
+[數據機 Modem]
+   |  Port Forward 51820/51821
+[家用 Wi‑Fi 分享器]
+   |-- Port Forward 51820/51821 → Ubuntu
+   |-- Static Route: 10.0.0.0/24 → Ubuntu_LAN_IP
+[Ubuntu]
+   |-- WireGuard: wg0(10.0.0.2/24, Full) / wg1(10.1.0.2/24, Selective)
+   |-- AdGuard Home: DNS:53, Setup:3000
+   |-- NAT → Internet
+```
+
+### 關鍵設定節點
+- **數據機**：將 UDP **51820/51821** 轉發到家用路由器 WAN。
+- **家用路由器**：
+  - 再次將 **51820/51821** 轉發到 **Ubuntu 的 LAN IP**。
+  - 新增 **靜態路由**：`10.0.0.0/24 → Ubuntu_LAN_IP`（讓內部網段能回到 Ubuntu 再由 VPN/NAT 出口）。
+- **Ubuntu**：
+  - `wg0` 提供全流量；`wg1` 提供指定服務分流。
+  - AdGuard Home 作為 VPN 客戶端 DNS（`10.0.0.1`）。
 
 ---
 
